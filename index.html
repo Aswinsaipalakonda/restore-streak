@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Restore Streak</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --bg-subtle: #111827;
+      --fg: #f1f5f9;
+      --muted: #64748b;
+      --accent: #10b981;
+      --accent-glow: rgba(16, 185, 129, 0.4);
+      --card: #1e293b;
+      --border: #334155;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    .font-display {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .bg-pattern {
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+    }
+
+    .neon-text {
+      text-shadow: 0 0 30px var(--accent-glow);
+    }
+
+    .glow-orbit {
+      position: relative;
+    }
+
+    .glow-orbit::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation: orbit 20s linear infinite;
+      opacity: 0.3;
+    }
+
+    @keyframes orbit {
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    .pulse-ring {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    .stripe-progress {
+      background: linear-gradient(90deg, var(--accent), #059669);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stripe-progress::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(255,255,255,0.1) 10px,
+        rgba(255,255,255,0.1) 20px
+      );
+      pointer-events: none;
+    }
+
+    .day-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      transition: all 0.3s ease;
+    }
+
+    .day-card.earned {
+      border-color: var(--accent);
+      background: linear-gradient(135deg, var(--card), #0f1e2a);
+    }
+
+    .streak-line {
+      stroke: var(--muted);
+      stroke-width: 2;
+      transition: stroke 0.3s ease;
+    }
+
+    .streak-line.earned {
+      stroke: var(--accent);
+    }
+
+    .btn-restart {
+      background: linear-gradient(135deg, var(--accent), #059669);
+      color: white;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-restart::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .btn-restart:hover::before {
+      left: 100%;
+    }
+
+    .btn-restart:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 40px var(--accent-glow);
+    }
+
+    .input-date {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      color: var(--fg);
+    }
+
+    .input-date:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      transition: background 0.3s ease;
+    }\n    .status-indicator.earned {
+      background: var(--accent);
+    }
+  </style>
+</head>
+<body class="bg-pattern min-h-screen flex flex-col items-center justify-center p-4">
+
+  <div class="w-full max-w-2xl text-center">
+    <h1 class="font-display text-4xl md:text-5xl font-bold neon-text mb-6 tracking-tight">
+      Restore Streak
+    </h1>
+
+    <p class="text var(--muted) text-lg mb-8 max-w-xl mx-auto">
+      Your daily coding streak is precious. Let's help you get back on track.
+    </p>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 gap-4 mb-8 w-full max-w-2xl">
+      <div id="streak-card" class="day-card p-6 rounded-xl border-stroke">
+        <div class="text-3xl font-bold text-accent mb-2" id="current-streak">0</div>
+        <div class="text-sm text-muted">Current Streak</div>
+        <div class="mt-3 px-2 py-1 rounded bg-accent-glow text-xs font-medium">Earned</div>
+      </div>
+
+      <div id="best-card" class="day-card p-6 rounded-xl border-stroke">
+        <div class="text-3xl font-bold" id="best-streak">0</div>
+        <div class="text-sm text-muted">Best Streak</div>
+      </div>
+    </div>
+
+    <!-- Calendar Grid -->
+    <div class="w-full mb-8">
+      <h2 class="font-display text-xl font-medium mb-4 text-muted">Calendar</h2>
+      <div id="calendar-grid" class="grid grid-cols-7 gap-2 justify-items-center" style="grid-template-columns: repeat(7, 44px);">
+        <!-- Days will be populated by JS -->
+      </div>
+    </div>
+
+    <!-- Date Input -->
+    <div class="mb-6 w-full max-w-2xl">
+      <label class="block text-sm font-medium mb-2 display">Restore on Date</label>
+      <input
+        type="date"
+        id="date-input"
+        class="input-date w-full px-4 py-3 rounded-xl text-lg font-medium focus:outline-none focus:ring-2 focus:ring-accent"
+        value="2026-09-20"
+      />
+    </div>
+
+    <button
+      id="restart-btn"
+      class="btn-restart w-full py-4 px-8 rounded-xl text-lg font-semibold mt-2"
+    >
+      Restore Streak
+    </button>
+
+    <p id="message" class="mt-6 text-sm text-muted"></p>
+  </div>
+
+  <script>
+    // Initialize from data.json
+    const data = {
+      date: "2026-09-20T11:36:29+05:30"
+    };
+
+    // Set the input date from JSON
+    document.getElementById('date-input').value = data.date.split('T')[0];
+
+    // Streak data - in a real app, this would come from a backend
+    let currentStreak = 47;
+    let bestStreak = 63;
+    const today = new Date();
+    const targetDate = new Date(data.date);
+
+    // Calculate days since target date
+    const diffTime = Math.abs(targetDate - today);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    // Update UI
+    document.getElementById('current-streak').textContent = currentStreak;
+    document.getElementById('best-streak').textContent = bestStreak;
+
+    // Generate calendar grid
+    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const calendarGrid = document.getElementById('calendar-grid');
+
+    daysOfWeek.forEach(day => {
+      const div = document.createElement('div');
+      div.className = 'text-center text-xs font-medium text-muted';
+      div.textContent = day;
+      calendarGrid.appendChild(div);
+    });
+
+    // Generate day cards for the past 60 days
+    const todayMs = today.getTime();
+    for (let i = 0; i <= 60; i++) {
+      const date = new Date(todayMs - (i * 24 * 60 * 60 * 1000));
+      const dayNum = date.getDate();
+      const month = date.toLocaleString('default', { month: 'short' });
+      const dayKey = date.toISOString().split('T')[0];
+
+      const div = document.createElement('div');
+      div.className = 'day-card w-full h-24 rounded-xl flex items-center justify-center text-sm text-muted cursor-pointer hover:opacity-80 transition-opacity';
+      div.dataset.day = dayKey;
+      div.tabIndex = 0;
+      div.setAttribute('role', 'button');
+      div.setAttribute('aria-label', `Day ${dayNum} ${month}`);
+
+      // Check if this day is before the target date (earned)
+      const dateObj = new Date(dayKey);
+      if (dateObj < targetDate || dayKey === data.date.split('T')[0]) {
+        div.classList.add('earned');
+        div.style.background = 'linear-gradient(135deg, var(--card), #0f1e2a)';
+        div.style.borderColor = 'var(--accent)';
+        div.innerHTML = `<span class="font-medium text-accent">${dayNum}</span>`;
+      } else {
+        div.innerHTML = `${dayNum}`;
+      }
+
+      calendarGrid.appendChild(div);
+    }
+
+    // Restart button handler
+    document.getElementById('restart-btn').addEventListener('click', () => {
+      const selectedDate = document.getElementById('date-input').value;
+      const messageEl = document.getElementById('message');
+
+      // Validate date
+      if (!selectedDate) {
+        messageEl.textContent = 'Please select a date';
+        messageEl.style.color = 'var(--muted)';
+        return;
+      }
+
+      const selectedDateObj = new Date(selectedDate);
+      const todayMs = today.getTime();
+      const selectedMs = selectedDateObj.getTime();
+
+      // Check if date is in the past or today
+      if (selectedMs > todayMs) {
+        messageEl.textContent = 'Please select a past or today date';
+        messageEl.style.color = 'var(--muted)';
+        return;
+      }
+
+      // Calculate streak restoration
+      const daysSinceTarget = Math.ceil((todayMs - selectedMs) / (1000 * 60 * 60 * 24));
+      const restoredDays = Math.min(daysSinceTarget, 100);
+
+      // Update streaks
+      currentStreak = Math.min(restoredDays, bestStreak + 10);
+      if (currentStreak > bestStreak) {
+        bestStreak = currentStreak;
+      }
+
+      // Update UI
+      document.getElementById('current-streak').textContent = currentStreak;
+      document.getElementById('best-streak').textContent = bestStreak;
+
+      // Recolor earned days up to the restored streak
+      const dayCards = calendarGrid.querySelectorAll('.day-card');
+      dayCards.forEach((card, index) => {
+        if (index < currentStreak) {
+          card.classList.add('earned');
+          card.style.background = 'linear-gradient(135deg, var(--card), #0f1e2a)';
+          card.style.borderColor = 'var(--accent)';
+          card.innerHTML = `<span class="font-medium text-accent">${card.dataset.day.split('-')[2] || '?'}</span>`;
+        }
+      });
+
+      messageEl.textContent = `
+        ${currentStreak} days restored!` +
+        (currentStreak >= bestStreak ? ' New best streak!' : '')
+      ;
+      messageEl.style.color = 'var(--accent)';
+
+      // Trigger celebration
+      celebrate();
+    });
+
+    // Celebration effect
+    function celebrate() {
+      const particles = [];
+      const colors = ['#10b981', '#f59e0b', '#3b82f6', '#ec4899'];
+
+      for (let i = 0; i < 30; i++) {
+        const particle = document.createElement('div');
+        particle.style.position = 'fixed';
+        particle.style.width = '8px';
+        particle.style.height = '8px';
+        particle.style.borderRadius = '50%';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+        particle.style.pointerEvents = 'none';
+        particle.style.zIndex = '1000';
+        particle.style.fontSize = '20px';
+        document.body.appendChild(particle);
+
+        const size = Math.random() * 4 + 4;
+        particle.style.width = size + 'px';
+        particle.style.height = size + 'px';
+
+        const angle = Math.random() * 360;
+        const velocity = Math.random() * 50 + 30;
+        const x = Math.cos(angle * Math.PI / 180) * velocity;
+        const y = Math.sin(angle * Math.PI / 180) * velocity;
+
+        particle.style.transition = `transform 1s ease-out, opacity 1s ease-out`;
+        particle.style.transform = `translate(${x}px, ${y}px)`;
+        particle.style.opacity = '0';
+
+        setTimeout(() => {
+          particle.remove();
+        }, 1000);
+      }
+
+      // Confetti canvas
+      const canvas = document.createElement('canvas');
+      canvas.style.position = 'fixed';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.pointerEvents = 'none';
+      canvas.style.zIndex = '999';
+      document.body.appendChild(canvas);
+
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const confettiPieces = 50;
+      const colors2 = ['#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#8b5cf6'];
+
+      function drawConfetti() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (let i = 0; i < confettiPieces; i++) {
+          const type = Math.random() > 0.5 ? 'rect' : 'circle';
+          const color = colors2[Math.floor(Math.random() * colors2.length)];
+          const size = Math.random() * 10 + 5;
+          const x = Math.random() * canvas.width;
+          const y = Math.random() * canvas.height - canvas.height;
+          const rotation = Math.random() * 360;
+
+          if (type === 'rect') {
+            ctx.fillStyle = color;
+            ctx.save();
+            ctx.translate(x + size / 2, y + size / 2);
+            ctx.rotate(rotation * Math.PI / 180);
+            ctx.fillRect(-size / 2, -size / 2, size, size / 3);
+            ctx.restore();
+          } else {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          y -= 5;
+          x += (Math.random() - 0.5) * 5;
+
+          if (y > 0 && y < canvas.height) {
+            if (type === 'rect') {
+              ctx.fillRect(-size / 2, y, size, size / 3);
+            } else {
+              ctx.beginPath();
+              ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          } else {
+            // Remove confetti that fell off screen
+            confettiPieces--;
+          }
+        }
+
+        if (confettiPieces > 0) {
+          requestAnimationFrame(drawConfetti);
+        } else {
+          setTimeout(() => canvas.remove(), 1000);
+        }
+      }
+
+      drawConfetti();
+
+      // Reset after 3 seconds
+      setTimeout(() => {
+        const existingConfetti = document.querySelectorAll('.confetti');
+        existingConfetti.forEach(el => el.remove());
+        const existingCanvas = document.querySelector('canvas');
+        if (existingCanvas) existingCanvas.remove();
+      }, 3000);
+    }
+
+    // Keyboard accessibility for calendar
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        const active = document.activeElement;
+        if (active.classList.contains('day-card') || active.parentElement.classList.contains('day-card')) {
+          e.preventDefault();
+          const card = active.classList.contains('day-card') ? active : active.parentElement;
+          const date = card.dataset.day;
+          document.getElementById('date-input').value = date;
+          document.getElementById('restart-btn').click();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
